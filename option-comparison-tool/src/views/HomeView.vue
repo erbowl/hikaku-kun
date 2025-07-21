@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <header>
-      <h1>選択肢比較支援ツール</h1>
+      <h1>比較くん</h1>
       <p class="subtitle">複数の選択肢を多観点で評価し、最適な選択を支援します</p>
     </header>
     
