@@ -90,6 +90,11 @@ export const useComparisonStore = defineStore('comparison', () => {
     }
   }
 
+  function reorderOptions(fromIndex: number, toIndex: number) {
+    const item = options.value.splice(fromIndex, 1)[0]
+    options.value.splice(toIndex, 0, item)
+  }
+
   function addCriteria(name: string, weight: number = 5) {
     const id = generateId()
     criteria.value.push({ id, name, weight })
@@ -120,6 +125,11 @@ export const useComparisonStore = defineStore('comparison', () => {
       criterium.name = name
       criterium.weight = weight
     }
+  }
+
+  function reorderCriteria(fromIndex: number, toIndex: number) {
+    const item = criteria.value.splice(fromIndex, 1)[0]
+    criteria.value.splice(toIndex, 0, item)
   }
 
   function setEvaluation(optionId: string, criteriaId: string, value: number) {
@@ -187,9 +197,11 @@ export const useComparisonStore = defineStore('comparison', () => {
     addOption,
     removeOption,
     updateOption,
+    reorderOptions,
     addCriteria,
     removeCriteria,
     updateCriteria,
+    reorderCriteria,
     setEvaluation,
     loadProject,
     exportProject,

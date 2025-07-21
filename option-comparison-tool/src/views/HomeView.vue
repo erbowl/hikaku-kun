@@ -11,6 +11,7 @@
         <!-- 選択肢管理 -->
         <section class="management-section">
           <h2>📝 選択肢管理</h2>
+          <p class="section-description">比較したい選択肢を追加し、ドラッグ&ドロップで順序を調整できます</p>
           
           <div class="add-form">
             <input 
@@ -25,42 +26,54 @@
           </div>
           
           <div class="items-list" v-if="store.options.length > 0">
-            <div 
-              v-for="option in store.options" 
-              :key="option.id"
-              class="item-card"
+            <draggable 
+              v-model="store.options" 
+              @end="onOptionSort"
+              item-key="id"
+              class="draggable-list"
+              :animation="200"
+              ghost-class="ghost-item"
+              chosen-class="chosen-item"
+              role="list"
+              aria-label="選択肢リスト（ドラッグで並び替え可能）"
             >
-              <div v-if="editingOption === option.id" class="edit-form">
-                <input 
-                  v-model="editOptionName" 
-                  @keyup.enter="saveOptionEdit(option.id)"
-                  @keyup.esc="cancelOptionEdit"
-                  class="edit-input"
-                  ref="editOptionInput"
-                />
-                <div class="edit-buttons">
-                  <button @click="saveOptionEdit(option.id)" class="btn btn-sm btn-success">保存</button>
-                  <button @click="cancelOptionEdit" class="btn btn-sm btn-secondary">キャンセル</button>
+              <template #item="{ element: option }">
+                <div class="item-card draggable-item" role="listitem" :aria-label="`選択肢: ${option.name}`">
+                  <div v-if="editingOption === option.id" class="edit-form">
+                    <input 
+                      v-model="editOptionName" 
+                      @keyup.enter="saveOptionEdit(option.id)"
+                      @keyup.esc="cancelOptionEdit"
+                      class="edit-input"
+                      ref="editOptionInput"
+                    />
+                    <div class="edit-buttons">
+                      <button @click="saveOptionEdit(option.id)" class="btn btn-sm btn-success">保存</button>
+                      <button @click="cancelOptionEdit" class="btn btn-sm btn-secondary">キャンセル</button>
+                    </div>
+                  </div>
+                  <div v-else class="item-display">
+                    <span class="item-name">{{ option.name }}</span>
+                    <div class="item-actions">
+                      <button @click="startEditOption(option)" class="btn btn-sm btn-outline">編集</button>
+                      <button @click="removeOption(option.id)" class="btn btn-sm btn-danger">削除</button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div v-else class="item-display">
-                <span class="item-name">{{ option.name }}</span>
-                <div class="item-actions">
-                  <button @click="startEditOption(option)" class="btn btn-sm btn-outline">編集</button>
-                  <button @click="removeOption(option.id)" class="btn btn-sm btn-danger">削除</button>
-                </div>
-              </div>
-            </div>
+              </template>
+            </draggable>
           </div>
           
           <div v-else class="empty-message">
             選択肢を追加してください
+            <div class="help-text">💡 追加後はドラッグ&ドロップで順序を変更できます</div>
           </div>
         </section>
 
         <!-- 観点・重み管理 -->
         <section class="management-section">
           <h2>⚖️ 観点・重み管理</h2>
+          <p class="section-description">評価観点と重み（1-10）を設定し、ドラッグ&ドロップで順序を調整できます</p>
           
           <div class="add-form">
             <input 
@@ -84,47 +97,58 @@
           </div>
           
           <div class="items-list" v-if="store.criteria.length > 0">
-            <div 
-              v-for="criteria in store.criteria" 
-              :key="criteria.id"
-              class="item-card criteria-card"
+            <draggable 
+              v-model="store.criteria" 
+              @end="onCriteriaSort"
+              item-key="id"
+              class="draggable-list"
+              :animation="200"
+              ghost-class="ghost-item"
+              chosen-class="chosen-item"
+              role="list"
+              aria-label="観点リスト（ドラッグで並び替え可能）"
             >
-              <div v-if="editingCriteria === criteria.id" class="edit-form">
-                <input 
-                  v-model="editCriteriaName" 
-                  @keyup.enter="saveCriteriaEdit(criteria.id)"
-                  @keyup.esc="cancelCriteriaEdit"
-                  class="edit-input"
-                />
-                <input 
-                  v-model.number="editCriteriaWeight" 
-                  type="number" 
-                  min="1" 
-                  max="10"
-                  @keyup.enter="saveCriteriaEdit(criteria.id)"
-                  @keyup.esc="cancelCriteriaEdit"
-                  class="weight-input"
-                />
-                <div class="edit-buttons">
-                  <button @click="saveCriteriaEdit(criteria.id)" class="btn btn-sm btn-success">保存</button>
-                  <button @click="cancelCriteriaEdit" class="btn btn-sm btn-secondary">キャンセル</button>
+              <template #item="{ element: criteria }">
+                <div class="item-card criteria-card draggable-item" role="listitem" :aria-label="`観点: ${criteria.name} (重み: ${criteria.weight})`">
+                  <div v-if="editingCriteria === criteria.id" class="edit-form">
+                    <input 
+                      v-model="editCriteriaName" 
+                      @keyup.enter="saveCriteriaEdit(criteria.id)"
+                      @keyup.esc="cancelCriteriaEdit"
+                      class="edit-input"
+                    />
+                    <input 
+                      v-model.number="editCriteriaWeight" 
+                      type="number" 
+                      min="1" 
+                      max="10"
+                      @keyup.enter="saveCriteriaEdit(criteria.id)"
+                      @keyup.esc="cancelCriteriaEdit"
+                      class="weight-input"
+                    />
+                    <div class="edit-buttons">
+                      <button @click="saveCriteriaEdit(criteria.id)" class="btn btn-sm btn-success">保存</button>
+                      <button @click="cancelCriteriaEdit" class="btn btn-sm btn-secondary">キャンセル</button>
+                    </div>
+                  </div>
+                  <div v-else class="item-display">
+                    <div class="criteria-info">
+                      <span class="item-name">{{ criteria.name }}</span>
+                      <span class="weight-badge">重み: {{ criteria.weight }}</span>
+                    </div>
+                    <div class="item-actions">
+                      <button @click="startEditCriteria(criteria)" class="btn btn-sm btn-outline">編集</button>
+                      <button @click="removeCriteria(criteria.id)" class="btn btn-sm btn-danger">削除</button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div v-else class="item-display">
-                <div class="criteria-info">
-                  <span class="item-name">{{ criteria.name }}</span>
-                  <span class="weight-badge">重み: {{ criteria.weight }}</span>
-                </div>
-                <div class="item-actions">
-                  <button @click="startEditCriteria(criteria)" class="btn btn-sm btn-outline">編集</button>
-                  <button @click="removeCriteria(criteria.id)" class="btn btn-sm btn-danger">削除</button>
-                </div>
-              </div>
-            </div>
+              </template>
+            </draggable>
           </div>
           
           <div v-else class="empty-message">
             観点を追加してください
+            <div class="help-text">💡 追加後はドラッグ&ドロップで順序を変更できます</div>
           </div>
         </section>
       </div>
@@ -181,6 +205,7 @@ import EvaluationTable from '@/components/EvaluationTable.vue'
 import WeightRadarChart from '@/components/WeightRadarChart.vue'
 import ScoreStackedChart from '@/components/ScoreStackedChart.vue'
 import ResultsRanking from '@/components/ResultsRanking.vue'
+import draggable from 'vuedraggable'
 
 const store = useComparisonStore()
 
@@ -197,6 +222,15 @@ const editOptionName = ref('')
 const editCriteriaName = ref('')
 const editCriteriaWeight = ref(5)
 const editOptionInput = ref<HTMLInputElement>()
+
+// Sorting functions
+function onOptionSort() {
+  store.saveToLocalStorage()
+}
+
+function onCriteriaSort() {
+  store.saveToLocalStorage()
+}
 
 // Option management methods
 function addOption() {
@@ -381,7 +415,7 @@ onMounted(() => {
 header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 2rem 0;
+  padding: 2rem 1rem;
   text-align: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
@@ -389,15 +423,17 @@ header {
 h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0;
+  margin: 0 auto;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  max-width: 1200px;
 }
 
 .subtitle {
   font-size: 1.1rem;
-  margin: 0.5rem 0 0 0;
+  margin: 0.5rem auto 0 0;
   opacity: 0.9;
   font-weight: 300;
+  max-width: 1200px;
 }
 
 main {
@@ -426,12 +462,19 @@ main {
 
 .management-section h2 {
   font-size: 1.3rem;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 0.5rem 0;
   color: #333;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.section-description {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.4;
 }
 
 /* Form styles */
@@ -575,17 +618,72 @@ main {
   gap: 0.75rem;
 }
 
+.draggable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.draggable-item {
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.draggable-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.ghost-item {
+  opacity: 0.5;
+  background: #f3f4f6 !important;
+  border: 2px dashed #9ca3af !important;
+}
+
+.chosen-item {
+  background: #f0f8ff !important;
+  border-color: #667eea !important;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2) !important;
+}
+
 .item-card {
   border: 2px solid #e1e8ed;
   border-radius: 8px;
   padding: 1rem;
   background: #f8fafc;
   transition: all 0.2s ease;
+  flex: 1;
+  position: relative;
 }
 
 .item-card:hover {
   border-color: #667eea;
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.1);
+}
+
+.item-card::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(to bottom, #d1d5db 0%, #d1d5db 20%, transparent 20%, transparent 40%, #d1d5db 40%, #d1d5db 60%, transparent 60%, transparent 80%, #d1d5db 80%, #d1d5db 100%);
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.draggable-item:hover .item-card::before {
+  opacity: 0.8;
 }
 
 .criteria-card {
@@ -596,18 +694,22 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+  padding-left: 16px;
 }
 
 .item-name {
   font-weight: 600;
   color: #374151;
   font-size: 1rem;
+  flex: 1;
 }
 
 .criteria-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .weight-badge {
@@ -619,6 +721,9 @@ main {
 .item-actions {
   display: flex;
   gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  align-items: center;
 }
 
 .edit-form {
@@ -654,6 +759,13 @@ main {
   border: 2px dashed #d1d5db;
   border-radius: 8px;
   background: #f9fafb;
+}
+
+.help-text {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+  font-style: normal;
 }
 
 /* Section styles */
@@ -744,6 +856,7 @@ main {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
+    padding-left: 16px;
   }
   
   .item-actions {
