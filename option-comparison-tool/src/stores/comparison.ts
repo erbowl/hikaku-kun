@@ -44,7 +44,7 @@ export const useComparisonStore = defineStore('comparison', () => {
       const breakdown: Record<string, number> = {}
       
       criteria.value.forEach(criterium => {
-        const evaluation = evaluations.value[option.id]?.[criterium.id] || 0
+        const evaluation = evaluations.value[option.id]?.[criterium.id] ?? 3 // Default to 3 (普通) if not set
         const weightedScore = evaluation * criterium.weight
         breakdown[criterium.id] = weightedScore
         totalScore += weightedScore
@@ -73,6 +73,10 @@ export const useComparisonStore = defineStore('comparison', () => {
     if (!evaluations.value[id]) {
       evaluations.value[id] = {}
     }
+    // Initialize evaluations for all existing criteria with default value 3 (普通)
+    criteria.value.forEach(criterium => {
+      evaluations.value[id][criterium.id] = 3
+    })
   }
 
   function removeOption(id: string) {
