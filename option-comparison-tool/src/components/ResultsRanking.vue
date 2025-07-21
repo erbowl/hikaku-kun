@@ -19,11 +19,11 @@
         </div>
         <div class="stat-item">
           <span class="stat-label">最大可能スコア:</span>
-          <span class="stat-value">{{ maxPossibleScore.toFixed(1) }}</span>
+          <span class="stat-value">{{ Math.round(maxPossibleScore) }}</span>
         </div>
         <div class="stat-item" v-if="store.rankedOptions.length > 1">
           <span class="stat-label">1位と2位の差:</span>
-          <span class="stat-value">{{ scoreDifference.toFixed(1) }}ポイント</span>
+          <span class="stat-value">{{ Math.round(scoreDifference) }}ポイント</span>
         </div>
       </div>
 
@@ -53,7 +53,7 @@
                   ></div>
                 </div>
                 <span class="score-text">
-                  {{ option.score.toFixed(1) }} / {{ maxPossibleScore.toFixed(1) }}
+                  {{ Math.round(option.score) }} / {{ Math.round(maxPossibleScore) }}
                 </span>
               </div>
               
@@ -86,16 +86,16 @@
                     {{ store.evaluations[option.id]?.[criteria.id] || 0 }} × {{ criteria.weight }} = 
                   </span>
                   <span class="partial-score">
-                    {{ (option.breakdown[criteria.id] || 0).toFixed(1) }}
+                    {{ Math.round(option.breakdown[criteria.id] || 0) }}
                   </span>
                 </div>
               </div>
             </div>
             
             <div class="total-calculation">
-              <strong>合計: {{ option.score.toFixed(1) }}ポイント</strong>
+              <strong>合計: {{ Math.round(option.score) }}ポイント</strong>
               <span class="percentage">
-                ({{ ((option.score / maxPossibleScore) * 100).toFixed(1) }}%)
+                ({{ Math.round((option.score / maxPossibleScore) * 100) }}%)
               </span>
             </div>
           </div>
@@ -214,12 +214,12 @@ h3 {
 }
 
 .ranking-item:hover {
-  border-color: #4f8cff;
-  box-shadow: 0 2px 12px rgba(79, 140, 255, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.1);
 }
 
 .ranking-item.expanded {
-  border-color: #4f8cff;
+  border-color: #3b82f6;
 }
 
 .ranking-header {
@@ -301,7 +301,7 @@ h3 {
 
 .score-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4f8cff, #3b82f6);
+  background: linear-gradient(90deg, #3b82f6, #1e40af);
   transition: width 0.3s ease;
 }
 
@@ -328,7 +328,7 @@ h3 {
 
 .expand-btn.expanded {
   transform: rotate(180deg);
-  color: #4f8cff;
+  color: #3b82f6;
 }
 
 .ranking-details {
@@ -384,7 +384,7 @@ h3 {
 }
 
 .evaluation {
-  color: #4f8cff;
+  color: #3b82f6;
   font-weight: 500;
 }
 

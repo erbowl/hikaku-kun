@@ -22,13 +22,13 @@ let chartInstance: Chart | null = null
 // 観点ごとに異なる色を生成
 function getColorForCriteria(index: number) {
   const colors = [
-    { bg: 'rgba(79, 140, 255, 0.8)', border: '#4f8cff' },
-    { bg: 'rgba(255, 99, 132, 0.8)', border: '#ff6384' },
-    { bg: 'rgba(255, 206, 86, 0.8)', border: '#ffce56' },
-    { bg: 'rgba(75, 192, 192, 0.8)', border: '#4bc0c0' },
-    { bg: 'rgba(153, 102, 255, 0.8)', border: '#9966ff' },
-    { bg: 'rgba(255, 159, 64, 0.8)', border: '#ff9f40' },
-    { bg: 'rgba(201, 203, 207, 0.8)', border: '#c9cbcf' },
+    { bg: 'rgba(59, 130, 246, 0.8)', border: '#3b82f6' },
+    { bg: 'rgba(30, 64, 175, 0.8)', border: '#1e40af' },
+    { bg: 'rgba(147, 197, 253, 0.8)', border: '#93c5fd' },
+    { bg: 'rgba(37, 99, 235, 0.8)', border: '#2563eb' },
+    { bg: 'rgba(96, 165, 250, 0.8)', border: '#60a5fa' },
+    { bg: 'rgba(219, 234, 254, 0.8)', border: '#dbeafe' },
+    { bg: 'rgba(191, 219, 254, 0.8)', border: '#bfdbfe' },
     { bg: 'rgba(54, 162, 235, 0.8)', border: '#36a2eb' }
   ]
   return colors[index % colors.length]
@@ -84,7 +84,7 @@ function createChart() {
           callbacks: {
             label: function(context) {
               const criteriaName = context.dataset.label
-              const score = context.parsed.y.toFixed(1)
+              const score = Math.round(context.parsed.y)
               return `${criteriaName}: ${score}ポイント`
             },
             footer: function(tooltipItems) {
@@ -92,7 +92,7 @@ function createChart() {
               tooltipItems.forEach(item => {
                 total += item.parsed.y
               })
-              return `合計: ${total.toFixed(1)}ポイント`
+              return `合計: ${Math.round(total)}ポイント`
             }
           }
         }

@@ -37,9 +37,9 @@ function createChart() {
         {
           label: '重み',
           data: weights,
-          backgroundColor: 'rgba(79, 140, 255, 0.2)',
-          borderColor: '#4f8cff',
-          pointBackgroundColor: '#4f8cff',
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          borderColor: '#3b82f6',
+          pointBackgroundColor: '#3b82f6',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
           borderWidth: 2,

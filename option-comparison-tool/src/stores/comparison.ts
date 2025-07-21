@@ -60,7 +60,7 @@ export const useComparisonStore = defineStore('comparison', () => {
     return options.value
       .map(option => ({
         ...option,
-        score: results.value[option.id]?.totalScore || 0,
+        score: Math.round(results.value[option.id]?.totalScore || 0),
         breakdown: results.value[option.id]?.breakdown || {}
       }))
       .sort((a, b) => b.score - a.score)

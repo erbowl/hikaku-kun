@@ -46,7 +46,7 @@
             </td>
             <td class="score-cell">
               <div class="total-score">
-                {{ store.results[option.id]?.totalScore?.toFixed(1) || '0.0' }}
+                {{ Math.round(store.results[option.id]?.totalScore || 0) }}
               </div>
             </td>
           </tr>
@@ -191,7 +191,7 @@ function getEvaluationLabel(value: number): string {
 
 .weight-badge {
   display: inline-block;
-  background: #4f8cff;
+  background: #3b82f6;
   color: white;
   font-size: 10px;
   padding: 2px 6px;
@@ -244,8 +244,8 @@ function getEvaluationLabel(value: number): string {
 
 .evaluation-select:focus {
   outline: none;
-  border-color: #4f8cff;
-  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.2);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .evaluation-select:hover {

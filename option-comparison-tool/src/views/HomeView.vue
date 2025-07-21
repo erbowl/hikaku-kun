@@ -413,7 +413,7 @@ onMounted(() => {
 }
 
 header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
   padding: 2rem 1rem;
   text-align: center;
@@ -497,8 +497,8 @@ main {
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .weight-input {
@@ -513,8 +513,8 @@ main {
 
 .weight-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* Button styles */
@@ -539,23 +539,23 @@ main {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .btn-outline {
   background: transparent;
-  border: 2px solid #667eea;
-  color: #667eea;
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
 }
 
 .btn-outline:hover {
-  background: #667eea;
+  background: #3b82f6;
   color: white;
 }
 
@@ -634,7 +634,7 @@ main {
 
 .draggable-item:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.15);
 }
 
 .draggable-item:active {
@@ -650,8 +650,8 @@ main {
 
 .chosen-item {
   background: #f0f8ff !important;
-  border-color: #667eea !important;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2) !important;
 }
 
 .item-card {
@@ -665,8 +665,8 @@ main {
 }
 
 .item-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.1);
 }
 
 .item-card::before {
@@ -687,7 +687,7 @@ main {
 }
 
 .criteria-card {
-  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 20%, #f8fafc 20%);
+  background: #f8fafc;
 }
 
 .item-display {
@@ -740,7 +740,7 @@ main {
 .edit-input {
   flex: 1;
   padding: 0.5rem;
-  border: 2px solid #667eea;
+  border: 2px solid #3b82f6;
   border-radius: 6px;
   font-size: 0.875rem;
 }
