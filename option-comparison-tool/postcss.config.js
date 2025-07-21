@@ -1,6 +1,1 @@
-export default {
-  plugins: {
-    '@tailwindcss/postcss': {},
-    autoprefixer: {},
-  },
-}
+// ファイル削除済みのため不要

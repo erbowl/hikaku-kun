@@ -1,182 +1,201 @@
 <template>
-  <div class="stacked-chart-container">
-    <div v-if="store.options.length === 0 || store.criteria.length === 0" class="text-center py-8 text-gray-500">
-      選択肢と観点を追加するとスコア内訳が表示されます。
+  <div class="score-stacked-chart">
+    <h4>スコア内訳</h4>
+    <div v-if="store.options.length === 0 || store.criteria.length === 0" class="empty-chart">
+      <p>選択肢と観点を追加するとスコア内訳が表示されます</p>
     </div>
-    <div v-else ref="chartContainer" class="w-full h-80">
-      <canvas ref="chartCanvas"></canvas>
-    </div>
+    <canvas v-else ref="stackedChart"></canvas>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js'
+import { onMounted, ref, watch, nextTick } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
+import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 const store = useComparisonStore()
-const chartContainer = ref<HTMLDivElement>()
-const chartCanvas = ref<HTMLCanvasElement>()
-let chartInstance: ChartJS | null = null
+const stackedChart = ref<HTMLCanvasElement | null>(null)
+let chartInstance: Chart | null = null
 
-// Generate colors for each criteria
-const colors = [
-  'rgba(59, 130, 246, 0.8)',   // blue
-  'rgba(16, 185, 129, 0.8)',   // green
-  'rgba(245, 158, 11, 0.8)',   // yellow
-  'rgba(239, 68, 68, 0.8)',    // red
-  'rgba(139, 92, 246, 0.8)',   // purple
-  'rgba(236, 72, 153, 0.8)',   // pink
-  'rgba(20, 184, 166, 0.8)',   // teal
-  'rgba(251, 146, 60, 0.8)',   // orange
-  'rgba(168, 85, 247, 0.8)',   // violet
-  'rgba(34, 197, 94, 0.8)',    // emerald
-]
-
-const chartData = computed(() => {
-  const labels = store.options.map(option => option.name)
-  const datasets = store.criteria.map((criterium, index) => ({
-    label: criterium.name,
-    data: store.options.map(option => {
-      const evaluation = store.evaluations[option.id]?.[criterium.id] || 0
-      return evaluation * criterium.weight
-    }),
-    backgroundColor: colors[index % colors.length],
-    borderColor: colors[index % colors.length].replace('0.8', '1'),
-    borderWidth: 1,
-  }))
-
-  return {
-    labels,
-    datasets,
-  }
-})
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'top' as const,
-      labels: {
-        boxWidth: 12,
-        padding: 15,
-        font: {
-          size: 11,
-        },
-      },
-    },
-    tooltip: {
-      mode: 'index' as const,
-      intersect: false,
-      callbacks: {
-        title: function(context: any) {
-          return `${context[0].label}のスコア内訳`
-        },
-        label: function(context: any) {
-          const criteriumName = context.dataset.label
-          const score = context.parsed.y
-          return `${criteriumName}: ${score.toFixed(1)}`
-        },
-        afterLabel: function(context: any) {
-          const optionId = store.options[context.dataIndex].id
-          const totalScore = store.results[optionId]?.totalScore || 0
-          if (context.datasetIndex === context.chart.data.datasets.length - 1) {
-            return `合計: ${totalScore.toFixed(1)}`
-          }
-          return ''
-        }
-      }
-    }
-  },
-  scales: {
-    x: {
-      stacked: true,
-      grid: {
-        display: false,
-      },
-    },
-    y: {
-      stacked: true,
-      beginAtZero: true,
-      title: {
-        display: true,
-        text: 'スコア',
-      },
-    },
-  },
-  interaction: {
-    mode: 'index' as const,
-    intersect: false,
-  },
+// 観点ごとに異なる色を生成
+function getColorForCriteria(index: number) {
+  const colors = [
+    { bg: 'rgba(79, 140, 255, 0.8)', border: '#4f8cff' },
+    { bg: 'rgba(255, 99, 132, 0.8)', border: '#ff6384' },
+    { bg: 'rgba(255, 206, 86, 0.8)', border: '#ffce56' },
+    { bg: 'rgba(75, 192, 192, 0.8)', border: '#4bc0c0' },
+    { bg: 'rgba(153, 102, 255, 0.8)', border: '#9966ff' },
+    { bg: 'rgba(255, 159, 64, 0.8)', border: '#ff9f40' },
+    { bg: 'rgba(201, 203, 207, 0.8)', border: '#c9cbcf' },
+    { bg: 'rgba(54, 162, 235, 0.8)', border: '#36a2eb' }
+  ]
+  return colors[index % colors.length]
 }
 
 function createChart() {
-  if (!chartCanvas.value) return
-  
-  const ctx = chartCanvas.value.getContext('2d')
-  if (!ctx) return
-  
-  chartInstance = new ChartJS(ctx, {
-    type: 'bar',
-    data: chartData.value,
-    options: chartOptions,
-  })
-}
+  if (!stackedChart.value || store.options.length === 0 || store.criteria.length === 0) return
 
-function updateChart() {
-  if (chartInstance) {
-    chartInstance.data = chartData.value
-    chartInstance.update()
-  }
-}
-
-function destroyChart() {
   if (chartInstance) {
     chartInstance.destroy()
-    chartInstance = null
   }
+
+  const labels = store.options.map(option => option.name)
+  
+  // 各観点ごとのデータセットを作成
+  const datasets = store.criteria.map((criteria, index) => {
+    const color = getColorForCriteria(index)
+    const data = store.options.map(option => {
+      const evaluation = store.evaluations[option.id]?.[criteria.id] || 0
+      return evaluation * criteria.weight
+    })
+    
+    return {
+      label: criteria.name,
+      data: data,
+      backgroundColor: color.bg,
+      borderColor: color.border,
+      borderWidth: 1
+    }
+  })
+
+  chartInstance = new Chart(stackedChart.value, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: {
+              family: "'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif"
+            }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(context) {
+              const criteriaName = context.dataset.label
+              const score = context.parsed.y.toFixed(1)
+              return `${criteriaName}: ${score}ポイント`
+            },
+            footer: function(tooltipItems) {
+              let total = 0
+              tooltipItems.forEach(item => {
+                total += item.parsed.y
+              })
+              return `合計: ${total.toFixed(1)}ポイント`
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: {
+            font: {
+              family: "'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif"
+            }
+          }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: {
+            font: {
+              family: "'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif"
+            }
+          },
+          title: {
+            display: true,
+            text: 'スコア',
+            font: {
+              family: "'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif",
+              size: 12
+            }
+          }
+        }
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      }
+    }
+  })
 }
 
 onMounted(() => {
   nextTick(() => {
-    if (store.options.length > 0 && store.criteria.length > 0) {
-      createChart()
-    }
+    createChart()
   })
 })
 
-watch(
-  [() => store.options, () => store.criteria, () => store.evaluations],
-  () => {
-    if (store.options.length > 0 && store.criteria.length > 0) {
-      if (!chartInstance) {
-        nextTick(() => {
-          createChart()
-        })
-      } else {
-        updateChart()
-      }
-    } else {
-      destroyChart()
-    }
-  },
-  { deep: true }
-)
+// データ変更の監視
+watch([() => store.options, () => store.criteria, () => store.evaluations], () => {
+  nextTick(() => {
+    createChart()
+  })
+}, { deep: true })
 </script>
 
 <style scoped>
-.stacked-chart-container {
+.score-stacked-chart {
   width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 1rem;
+}
+
+.score-stacked-chart h4 {
+  margin: 0 0 1rem 0;
+  text-align: center;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.empty-chart {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-style: italic;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: #f9f9f9;
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 300px !important;
+}
+
+@media (max-width: 768px) {
+  .score-stacked-chart {
+    max-width: 100%;
+    padding: 0.75rem;
+  }
+  
+  .score-stacked-chart h4 {
+    font-size: 14px;
+  }
+  
+  canvas {
+    height: 250px !important;
+  }
 }
 </style>

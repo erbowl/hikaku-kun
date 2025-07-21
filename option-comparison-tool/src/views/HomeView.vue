@@ -1,188 +1,181 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-4">
-          <div class="flex items-center space-x-4">
-            <h1 class="text-2xl font-bold text-gray-900">選択肢比較支援ツール</h1>
-            <input
-              v-model="store.projectName"
-              @blur="store.saveToLocalStorage"
-              class="text-lg font-medium text-gray-700 bg-transparent border-0 focus:outline-none focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-1"
-              placeholder="プロジェクト名"
-            />
-          </div>
-          <div class="flex items-center space-x-2">
-            <button
-              @click="exportData"
-              class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              エクスポート
-            </button>
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".json"
-              @change="importData"
-              class="hidden"
-            />
-            <button
-              @click="triggerImport"
-              class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              インポート
-            </button>
-            <button
-              @click="loadSampleData"
-              class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              サンプルデータ
-            </button>
-          </div>
-        </div>
-      </div>
+  <div id="app">
+    <header>
+      <h1>選択肢比較支援ツール</h1>
+      <p class="subtitle">複数の選択肢を多観点で評価し、最適な選択を支援します</p>
     </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Settings Area -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <!-- Options Management -->
-        <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">選択肢管理</h2>
-          <div class="space-y-3">
-            <div class="flex space-x-2">
-              <input
-                v-model="newOptionName"
-                @keyup.enter="addOption"
-                class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="新しい選択肢名"
-              />
-              <button
-                @click="addOption"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                追加
-              </button>
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="option in store.options"
-                :key="option.id"
-                class="flex items-center space-x-2 p-2 bg-gray-50 rounded"
-              >
-                <input
-                  v-model="option.name"
-                  @blur="store.saveToLocalStorage"
-                  class="flex-1 bg-transparent border-0 focus:outline-none focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-1"
+    
+    <main>
+      <!-- 管理セクション -->
+      <div class="management-sections">
+        <!-- 選択肢管理 -->
+        <section class="management-section">
+          <h2>📝 選択肢管理</h2>
+          
+          <div class="add-form">
+            <input 
+              v-model="newOptionName" 
+              placeholder="新しい選択肢名を入力" 
+              @keyup.enter="addOption"
+              class="form-input"
+            />
+            <button @click="addOption" :disabled="!newOptionName.trim()" class="btn btn-primary">
+              追加
+            </button>
+          </div>
+          
+          <div class="items-list" v-if="store.options.length > 0">
+            <div 
+              v-for="option in store.options" 
+              :key="option.id"
+              class="item-card"
+            >
+              <div v-if="editingOption === option.id" class="edit-form">
+                <input 
+                  v-model="editOptionName" 
+                  @keyup.enter="saveOptionEdit(option.id)"
+                  @keyup.esc="cancelOptionEdit"
+                  class="edit-input"
+                  ref="editOptionInput"
                 />
-                <button
-                  @click="store.removeOption(option.id)"
-                  class="text-red-500 hover:text-red-700 p-1"
-                >
-                  ✕
-                </button>
+                <div class="edit-buttons">
+                  <button @click="saveOptionEdit(option.id)" class="btn btn-sm btn-success">保存</button>
+                  <button @click="cancelOptionEdit" class="btn btn-sm btn-secondary">キャンセル</button>
+                </div>
+              </div>
+              <div v-else class="item-display">
+                <span class="item-name">{{ option.name }}</span>
+                <div class="item-actions">
+                  <button @click="startEditOption(option)" class="btn btn-sm btn-outline">編集</button>
+                  <button @click="removeOption(option.id)" class="btn btn-sm btn-danger">削除</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+          
+          <div v-else class="empty-message">
+            選択肢を追加してください
+          </div>
+        </section>
 
-        <!-- Criteria Management -->
-        <div class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">観点・重み管理</h2>
-          <div class="space-y-3">
-            <div class="flex space-x-2">
-              <input
-                v-model="newCriteriaName"
-                class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="新しい観点名"
-              />
-              <input
-                v-model.number="newCriteriaWeight"
-                type="number"
-                min="1"
-                max="10"
-                class="w-20 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="重み"
-              />
-              <button
-                @click="addCriteria"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                追加
-              </button>
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="criterium in store.criteria"
-                :key="criterium.id"
-                class="flex items-center space-x-2 p-2 bg-gray-50 rounded"
-              >
-                <input
-                  v-model="criterium.name"
-                  @blur="store.saveToLocalStorage"
-                  class="flex-1 bg-transparent border-0 focus:outline-none focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-1"
+        <!-- 観点・重み管理 -->
+        <section class="management-section">
+          <h2>⚖️ 観点・重み管理</h2>
+          
+          <div class="add-form">
+            <input 
+              v-model="newCriteriaName" 
+              placeholder="新しい観点名を入力" 
+              @keyup.enter="addCriteria"
+              class="form-input"
+            />
+            <input 
+              v-model.number="newCriteriaWeight" 
+              type="number" 
+              min="1" 
+              max="10" 
+              placeholder="重み(1-10)"
+              @keyup.enter="addCriteria"
+              class="weight-input"
+            />
+            <button @click="addCriteria" :disabled="!newCriteriaName.trim()" class="btn btn-primary">
+              追加
+            </button>
+          </div>
+          
+          <div class="items-list" v-if="store.criteria.length > 0">
+            <div 
+              v-for="criteria in store.criteria" 
+              :key="criteria.id"
+              class="item-card criteria-card"
+            >
+              <div v-if="editingCriteria === criteria.id" class="edit-form">
+                <input 
+                  v-model="editCriteriaName" 
+                  @keyup.enter="saveCriteriaEdit(criteria.id)"
+                  @keyup.esc="cancelCriteriaEdit"
+                  class="edit-input"
                 />
-                <input
-                  v-model.number="criterium.weight"
-                  @change="store.saveToLocalStorage"
-                  type="number"
-                  min="1"
+                <input 
+                  v-model.number="editCriteriaWeight" 
+                  type="number" 
+                  min="1" 
                   max="10"
-                  class="w-16 bg-transparent border-0 focus:outline-none focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-1 text-center"
+                  @keyup.enter="saveCriteriaEdit(criteria.id)"
+                  @keyup.esc="cancelCriteriaEdit"
+                  class="weight-input"
                 />
-                <button
-                  @click="store.removeCriteria(criterium.id)"
-                  class="text-red-500 hover:text-red-700 p-1"
-                >
-                  ✕
-                </button>
+                <div class="edit-buttons">
+                  <button @click="saveCriteriaEdit(criteria.id)" class="btn btn-sm btn-success">保存</button>
+                  <button @click="cancelCriteriaEdit" class="btn btn-sm btn-secondary">キャンセル</button>
+                </div>
+              </div>
+              <div v-else class="item-display">
+                <div class="criteria-info">
+                  <span class="item-name">{{ criteria.name }}</span>
+                  <span class="weight-badge">重み: {{ criteria.weight }}</span>
+                </div>
+                <div class="item-actions">
+                  <button @click="startEditCriteria(criteria)" class="btn btn-sm btn-outline">編集</button>
+                  <button @click="removeCriteria(criteria.id)" class="btn btn-sm btn-danger">削除</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+          
+          <div v-else class="empty-message">
+            観点を追加してください
+          </div>
+        </section>
       </div>
 
-      <!-- Evaluation Table -->
-      <div class="bg-white rounded-lg shadow mb-8">
-        <div class="p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">評価入力テーブル</h2>
-          <div class="overflow-x-auto">
-            <EvaluationTable />
-          </div>
+      <!-- データ管理 -->
+      <section class="data-section">
+        <h2>💾 データ管理</h2>
+        <div class="data-controls">
+          <button @click="exportData" class="btn btn-outline">
+            📤 エクスポート
+          </button>
+          <button @click="triggerImport" class="btn btn-outline">
+            📥 インポート
+          </button>
+          <input 
+            ref="fileInput" 
+            type="file" 
+            accept="application/json" 
+            style="display:none" 
+            @change="importData" 
+          />
+          <button @click="loadSampleData" class="btn btn-info">
+            🎯 サンプルデータ読込
+          </button>
+          <button @click="clearAllData" class="btn btn-warning">
+            🗑️ 全データクリア
+          </button>
         </div>
-      </div>
+      </section>
 
-      <!-- Results Area -->
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <!-- Charts -->
-        <div class="space-y-8">
-          <!-- Radar Chart -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">観点の重み分布</h3>
-            <WeightRadarChart />
-          </div>
+      <!-- 評価表 -->
+      <section class="evaluation-section">
+        <h2>📊 評価表</h2>
+        <EvaluationTable />
+      </section>
 
-          <!-- Stacked Bar Chart -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">スコア内訳</h3>
-            <ScoreStackedChart />
-          </div>
+      <!-- 可視化・結果 -->
+      <section class="visualization-section">
+        <h2>📈 可視化・結果</h2>
+        <div class="charts-grid">
+          <WeightRadarChart />
+          <ScoreStackedChart />
         </div>
-
-        <!-- Ranking -->
-        <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">結果ランキング</h3>
-          <ResultsRanking />
-        </div>
-      </div>
+        <ResultsRanking />
+      </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
 import EvaluationTable from '@/components/EvaluationTable.vue'
 import WeightRadarChart from '@/components/WeightRadarChart.vue'
@@ -197,7 +190,15 @@ const newCriteriaName = ref('')
 const newCriteriaWeight = ref(5)
 const fileInput = ref<HTMLInputElement>()
 
-// Methods
+// Edit states
+const editingOption = ref<string | null>(null)
+const editingCriteria = ref<string | null>(null)
+const editOptionName = ref('')
+const editCriteriaName = ref('')
+const editCriteriaWeight = ref(5)
+const editOptionInput = ref<HTMLInputElement>()
+
+// Option management methods
 function addOption() {
   if (newOptionName.value.trim()) {
     store.addOption(newOptionName.value.trim())
@@ -206,6 +207,35 @@ function addOption() {
   }
 }
 
+function removeOption(id: string) {
+  if (confirm('この選択肢を削除しますか？評価データも一緒に削除されます。')) {
+    store.removeOption(id)
+    store.saveToLocalStorage()
+  }
+}
+
+function startEditOption(option: any) {
+  editingOption.value = option.id
+  editOptionName.value = option.name
+  nextTick(() => {
+    editOptionInput.value?.focus()
+  })
+}
+
+function saveOptionEdit(id: string) {
+  if (editOptionName.value.trim()) {
+    store.updateOption(id, editOptionName.value.trim())
+    store.saveToLocalStorage()
+  }
+  cancelOptionEdit()
+}
+
+function cancelOptionEdit() {
+  editingOption.value = null
+  editOptionName.value = ''
+}
+
+// Criteria management methods
 function addCriteria() {
   if (newCriteriaName.value.trim()) {
     store.addCriteria(newCriteriaName.value.trim(), newCriteriaWeight.value)
@@ -215,6 +245,34 @@ function addCriteria() {
   }
 }
 
+function removeCriteria(id: string) {
+  if (confirm('この観点を削除しますか？評価データも一緒に削除されます。')) {
+    store.removeCriteria(id)
+    store.saveToLocalStorage()
+  }
+}
+
+function startEditCriteria(criteria: any) {
+  editingCriteria.value = criteria.id
+  editCriteriaName.value = criteria.name
+  editCriteriaWeight.value = criteria.weight
+}
+
+function saveCriteriaEdit(id: string) {
+  if (editCriteriaName.value.trim()) {
+    store.updateCriteria(id, editCriteriaName.value.trim(), editCriteriaWeight.value)
+    store.saveToLocalStorage()
+  }
+  cancelCriteriaEdit()
+}
+
+function cancelCriteriaEdit() {
+  editingCriteria.value = null
+  editCriteriaName.value = ''
+  editCriteriaWeight.value = 5
+}
+
+// Data management methods
 function exportData() {
   const data = store.exportProject()
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -242,11 +300,21 @@ function importData(event: Event) {
       const data = JSON.parse(e.target?.result as string)
       store.loadProject(data)
       store.saveToLocalStorage()
+      alert('データを正常に読み込みました。')
     } catch (error) {
-      alert('ファイルの読み込みに失敗しました。')
+      alert('ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。')
     }
   }
   reader.readAsText(file)
+}
+
+function clearAllData() {
+  if (confirm('すべてのデータを削除しますか？この操作は元に戻せません。')) {
+    store.options.length = 0
+    store.criteria.length = 0
+    store.evaluations = {}
+    store.saveToLocalStorage()
+  }
 }
 
 function loadSampleData() {
@@ -301,3 +369,404 @@ onMounted(() => {
   }
 })
 </script>
+
+<style scoped>
+#app {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: #333;
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
+header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem 0;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+  font-weight: 300;
+}
+
+main {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Management sections layout */
+.management-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.management-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e1e8ed;
+}
+
+.management-section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Form styles */
+.add-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.form-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.weight-input {
+  width: 120px;
+  padding: 0.75rem;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.weight-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Button styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid #667eea;
+  color: #667eea;
+}
+
+.btn-outline:hover {
+  background: #667eea;
+  color: white;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+.btn-info {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  color: white;
+}
+
+.btn-info:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.btn-warning:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* Items list */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.item-card {
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.item-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.1);
+}
+
+.criteria-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 20%, #f8fafc 20%);
+}
+
+.item-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #374151;
+  font-size: 1rem;
+}
+
+.criteria-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.weight-badge {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.edit-form > div:first-child {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.empty-message {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 2rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+/* Section styles */
+.data-section,
+.evaluation-section,
+.visualization-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e1e8ed;
+}
+
+.data-section h2,
+.evaluation-section h2,
+.visualization-section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.data-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 1024px) {
+  .management-sections {
+    grid-template-columns: 1fr;
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  header {
+    padding: 1.5rem 0;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+  
+  main {
+    padding: 0 0.75rem;
+    gap: 1.5rem;
+  }
+  
+  .management-section,
+  .data-section,
+  .evaluation-section,
+  .visualization-section {
+    padding: 1rem;
+  }
+  
+  .add-form {
+    flex-direction: column;
+  }
+  
+  .form-input {
+    min-width: auto;
+  }
+  
+  .data-controls {
+    flex-direction: column;
+  }
+  
+  .item-display {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .item-actions {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .management-section h2,
+  .data-section h2,
+  .evaluation-section h2,
+  .visualization-section h2 {
+    font-size: 1.1rem;
+  }
+  
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+</style>
