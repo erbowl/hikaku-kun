@@ -22,14 +22,14 @@ let chartInstance: Chart | null = null
 // 観点ごとに異なる色を生成
 function getColorForCriteria(index: number) {
   const colors = [
-    { bg: 'rgba(59, 130, 246, 0.8)', border: '#3b82f6' },
-    { bg: 'rgba(30, 64, 175, 0.8)', border: '#1e40af' },
-    { bg: 'rgba(147, 197, 253, 0.8)', border: '#93c5fd' },
-    { bg: 'rgba(37, 99, 235, 0.8)', border: '#2563eb' },
-    { bg: 'rgba(96, 165, 250, 0.8)', border: '#60a5fa' },
-    { bg: 'rgba(219, 234, 254, 0.8)', border: '#dbeafe' },
-    { bg: 'rgba(191, 219, 254, 0.8)', border: '#bfdbfe' },
-    { bg: 'rgba(54, 162, 235, 0.8)', border: '#36a2eb' }
+    { bg: 'rgba(59, 130, 246, 0.8)', border: '#3b82f6' },  // 青
+    { bg: 'rgba(255, 99, 132, 0.8)', border: '#ff6384' },  // 赤
+    { bg: 'rgba(255, 206, 86, 0.8)', border: '#ffce56' },  // 黄
+    { bg: 'rgba(75, 192, 192, 0.8)', border: '#4bc0c0' },  // 緑
+    { bg: 'rgba(153, 102, 255, 0.8)', border: '#9966ff' }, // 紫
+    { bg: 'rgba(255, 159, 64, 0.8)', border: '#ff9f40' },  // オレンジ
+    { bg: 'rgba(201, 203, 207, 0.8)', border: '#c9cbcf' }, // グレー
+    { bg: 'rgba(54, 162, 235, 0.8)', border: '#36a2eb' }   // ライトブルー
   ]
   return colors[index % colors.length]
 }
