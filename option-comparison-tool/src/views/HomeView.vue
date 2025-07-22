@@ -215,6 +215,7 @@
         <div class="modal-body">
           <p class="modal-description">
             AIやプログラムが直接データを作成する際は、以下のJSON形式に従ってください。
+            重み分布はパイチャートで視覚化されます。
           </p>
           
           <h4>基本構造</h4>
@@ -284,6 +285,7 @@
             <li><strong>重み：</strong> 1～10の整数（重要度を表す）</li>
             <li><strong>ID：</strong> 英数字とアンダースコアのみ使用推奨</li>
             <li><strong>日時：</strong> ISO 8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）</li>
+            <li><strong>チャート表示：</strong> 観点の重み分布はパイチャートで表示されます</li>
           </ul>
         </div>
       </div>
