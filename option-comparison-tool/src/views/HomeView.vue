@@ -155,7 +155,16 @@
 
       <!-- データ管理 -->
       <section class="data-section">
-        <h2>💾 データ管理</h2>
+        <h2>
+          💾 データ管理
+          <button 
+            @click="showFormatModal = true" 
+            class="info-btn"
+            title="データフォーマット仕様を表示"
+          >
+            ℹ️
+          </button>
+        </h2>
         <div class="data-controls">
           <button @click="exportData" class="btn btn-outline">
             📤 エクスポート
@@ -195,11 +204,95 @@
         <ResultsRanking />
       </section>
     </main>
+
+    <!-- データフォーマット仕様モーダル -->
+    <div v-if="showFormatModal" class="modal-overlay" @click="showFormatModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>📋 データフォーマット仕様</h3>
+          <button @click="showFormatModal = false" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-description">
+            AIやプログラムが直接データを作成する際は、以下のJSON形式に従ってください。
+          </p>
+          
+          <h4>基本構造</h4>
+          <pre class="code-block"><code>{
+  "id": "プロジェクトID（文字列）",
+  "name": "プロジェクト名（文字列）",
+  "createdAt": "作成日時（ISO 8601形式）",
+  "updatedAt": "更新日時（ISO 8601形式）",
+  "options": [選択肢の配列],
+  "criteria": [観点の配列],
+  "evaluations": {評価データのオブジェクト}
+}</code></pre>
+
+          <h4>選択肢（options）</h4>
+          <pre class="code-block"><code>[
+  {
+    "id": "選択肢ID（ユニークな文字列）",
+    "name": "選択肢名（文字列）"
+  }
+]</code></pre>
+
+          <h4>観点（criteria）</h4>
+          <pre class="code-block"><code>[
+  {
+    "id": "観点ID（ユニークな文字列）",
+    "name": "観点名（文字列）",
+    "weight": 重み（1-10の数値）
+  }
+]</code></pre>
+
+          <h4>評価データ（evaluations）</h4>
+          <pre class="code-block"><code>{
+  "選択肢ID": {
+    "観点ID": 評価値（1-5の数値）
+  }
+}</code></pre>
+
+          <h4>完全な例</h4>
+          <pre class="code-block"><code>{
+  "id": "project_001",
+  "name": "スマートフォン比較",
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "options": [
+    {"id": "option_1", "name": "iPhone 15"},
+    {"id": "option_2", "name": "Galaxy S24"}
+  ],
+  "criteria": [
+    {"id": "criteria_1", "name": "価格", "weight": 8},
+    {"id": "criteria_2", "name": "性能", "weight": 9}
+  ],
+  "evaluations": {
+    "option_1": {
+      "criteria_1": 3,
+      "criteria_2": 5
+    },
+    "option_2": {
+      "criteria_1": 4,
+      "criteria_2": 4
+    }
+  }
+}</code></pre>
+
+          <h4>重要な注意点</h4>
+          <ul class="note-list">
+            <li><strong>評価値：</strong> 1（非常に低い）～ 5（非常に高い）の整数</li>
+            <li><strong>重み：</strong> 1～10の整数（重要度を表す）</li>
+            <li><strong>ID：</strong> 英数字とアンダースコアのみ使用推奨</li>
+            <li><strong>日時：</strong> ISO 8601形式（YYYY-MM-DDTHH:mm:ss.sssZ）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useComparisonStore } from '@/stores/comparison'
 import EvaluationTable from '@/components/EvaluationTable.vue'
 import WeightRadarChart from '@/components/WeightRadarChart.vue'
@@ -214,6 +307,9 @@ const newOptionName = ref('')
 const newCriteriaName = ref('')
 const newCriteriaWeight = ref(5)
 const fileInput = ref<HTMLInputElement>()
+
+// Modal state
+const showFormatModal = ref(false)
 
 // Edit states
 const editingOption = ref<string | null>(null)
@@ -394,6 +490,13 @@ function loadSampleData() {
   store.saveToLocalStorage()
 }
 
+// Handle ESC key for modal
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    showFormatModal.value = false
+  }
+}
+
 // Initialize
 onMounted(() => {
   const loaded = store.loadFromLocalStorage()
@@ -401,6 +504,14 @@ onMounted(() => {
   if (!loaded || (store.options.length === 0 && store.criteria.length === 0)) {
     loadSampleData()
   }
+  
+  // Add ESC key listener for modal
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  // Cleanup event listener
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -880,6 +991,175 @@ main {
   .btn-sm {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
+  }
+}
+
+/* Info button styles */
+.info-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.info-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  transform: scale(1.1);
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #333;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-description {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.modal-body h4 {
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem 0;
+  border-left: 4px solid #3b82f6;
+  padding-left: 0.75rem;
+}
+
+.modal-body h4:first-of-type {
+  margin-top: 0;
+}
+
+.code-block {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0.75rem 0 1.5rem 0;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.code-block code {
+  color: #333;
+  white-space: pre;
+}
+
+.note-list {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 1rem 1rem 1rem 2rem;
+  margin: 1rem 0;
+}
+
+.note-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.note-list li:last-child {
+  margin-bottom: 0;
+}
+
+.note-list strong {
+  color: #0f172a;
+}
+
+/* Modal responsive */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .code-block {
+    font-size: 0.8rem;
+    padding: 0.75rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.3rem;
   }
 }
 </style>
