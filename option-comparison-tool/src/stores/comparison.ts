@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import * as LZString from 'lz-string'
 
 export interface Option {
   id: string
@@ -29,6 +30,10 @@ export interface ProjectData {
 }
 
 export const useComparisonStore = defineStore('comparison', () => {
+  // Constants for localStorage keys
+  const STORAGE_KEY = 'comparison-tool-data'
+  const LAST_URL_KEY = 'comparison-tool-last-url'
+  
   // State
   const projectName = ref('新しいプロジェクト')
   const options = ref<Option[]>([])
@@ -164,11 +169,11 @@ export const useComparisonStore = defineStore('comparison', () => {
 
   function saveToLocalStorage() {
     const data = exportProject()
-    localStorage.setItem('comparison-project', JSON.stringify(data))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
 
   function loadFromLocalStorage() {
-    const saved = localStorage.getItem('comparison-project')
+    const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
         const data = JSON.parse(saved) as ProjectData
@@ -184,6 +189,126 @@ export const useComparisonStore = defineStore('comparison', () => {
 
   function generateId(): string {
     return Math.random().toString(36).substr(2, 9)
+  }
+
+  // URL管理機能
+  function getCurrentShareHash(): string | null {
+    // 現在のデータから共有URLを生成してハッシュ部分を取得
+    try {
+      const data = exportProject()
+      const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(data))
+      return compressed
+    } catch (error) {
+      console.error('現在のデータのハッシュ生成に失敗:', error)
+      return null
+    }
+  }
+
+  function getLastLoadedUrl(): string | null {
+    return localStorage.getItem(LAST_URL_KEY)
+  }
+
+  function setLastLoadedUrl(urlHash: string) {
+    localStorage.setItem(LAST_URL_KEY, urlHash)
+  }
+
+  function clearLastLoadedUrl() {
+    localStorage.removeItem(LAST_URL_KEY)
+  }
+
+  // URL共有機能
+  function generateShareableUrl(): string {
+    const data = exportProject()
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(data))
+    const baseUrl = window.location.origin + window.location.pathname
+    return `${baseUrl}#share=${compressed}`
+  }
+
+  function smartLoadData(): { source: 'url' | 'local' | 'sample', loaded: boolean } {
+    // まずURLからデータを読み込む試行
+    const urlLoaded = loadFromUrl()
+    
+    if (urlLoaded) {
+      return { source: 'url', loaded: true }
+    }
+    
+    // URLからの読み込みが失敗した場合、ローカルストレージから読み込み
+    const localLoaded = loadFromLocalStorage()
+    if (localLoaded) {
+      return { source: 'local', loaded: true }
+    }
+    
+    return { source: 'sample', loaded: false }
+  }
+
+  function loadFromUrl(url?: string): boolean {
+    try {
+      const urlToProcess = url || window.location.href
+      const hashMatch = urlToProcess.match(/#share=(.+)/)
+      
+      if (hashMatch && hashMatch[1]) {
+        const currentUrlHash = hashMatch[1]
+        const lastLoadedUrl = getLastLoadedUrl()
+        
+        // 同じURLを再読み込みしている場合で、ローカルにデータがある場合はローカル優先
+        if (currentUrlHash === lastLoadedUrl) {
+          const hasLocalData = localStorage.getItem(STORAGE_KEY)
+          if (hasLocalData) {
+            console.log('同じURLの再読み込み: ローカルデータを維持')
+            return false // ローカルデータを使用
+          }
+        }
+        
+        // 新しいURLまたはローカルデータがない場合はURLから読み込み
+        const decompressed = LZString.decompressFromEncodedURIComponent(currentUrlHash)
+        
+        if (decompressed) {
+          const data = JSON.parse(decompressed) as ProjectData
+          loadProject(data)
+          
+          // URLハッシュを記録
+          setLastLoadedUrl(currentUrlHash)
+          
+          // 即座にローカルストレージに保存（編集可能状態にする）
+          saveToLocalStorage()
+          
+          // URLからハッシュを削除
+          if (window.history && window.history.replaceState) {
+            const newUrl = window.location.origin + window.location.pathname
+            window.history.replaceState({}, document.title, newUrl)
+          }
+          
+          console.log('URLからデータを読み込み、ローカル保存完了')
+          return true
+        }
+      }
+    } catch (error) {
+      console.error('URL からのデータ読み込みに失敗しました:', error)
+    }
+    return false
+  }
+
+  async function copyShareableUrl(): Promise<boolean> {
+    try {
+      const shareUrl = generateShareableUrl()
+      
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl)
+        return true
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = shareUrl
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        return true
+      }
+    } catch (error) {
+      console.error('URL のコピーに失敗しました:', error)
+      return false
+    }
   }
 
   return {
@@ -210,6 +335,18 @@ export const useComparisonStore = defineStore('comparison', () => {
     loadProject,
     exportProject,
     saveToLocalStorage,
-    loadFromLocalStorage
+    loadFromLocalStorage,
+    
+    // URL共有機能
+    generateShareableUrl,
+    loadFromUrl,
+    copyShareableUrl,
+    smartLoadData,
+    
+    // URL管理機能
+    getCurrentShareHash,
+    getLastLoadedUrl,
+    setLastLoadedUrl,
+    clearLastLoadedUrl
   }
 })

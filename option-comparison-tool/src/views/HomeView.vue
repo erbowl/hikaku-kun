@@ -172,6 +172,11 @@
           <button @click="triggerImport" class="btn btn-outline">
             📥 インポート
           </button>
+          <button @click="shareUrl" class="btn btn-outline" :disabled="isSharing">
+            <span v-if="isSharing">📋 コピー中...</span>
+            <span v-else-if="shareSuccess">✅ コピー完了</span>
+            <span v-else>🔗 URL共有</span>
+          </button>
           <input 
             ref="fileInput" 
             type="file" 
@@ -313,6 +318,10 @@ const fileInput = ref<HTMLInputElement>()
 // Modal state
 const showFormatModal = ref(false)
 
+// URL共有の状態
+const isSharing = ref(false)
+const shareSuccess = ref(false)
+
 // Edit states
 const editingOption = ref<string | null>(null)
 const editingCriteria = ref<string | null>(null)
@@ -431,6 +440,7 @@ function importData(event: Event) {
     try {
       const data = JSON.parse(e.target?.result as string)
       store.loadProject(data)
+      store.clearLastLoadedUrl() // URL記録もクリア
       store.saveToLocalStorage()
       alert('データを正常に読み込みました。')
     } catch (error) {
@@ -445,6 +455,7 @@ function clearAllData() {
     store.options.length = 0
     store.criteria.length = 0
     store.evaluations = {}
+    store.clearLastLoadedUrl() // URL記録もクリア
     store.saveToLocalStorage()
   }
 }
@@ -454,6 +465,7 @@ function loadSampleData() {
   store.options.length = 0
   store.criteria.length = 0
   store.evaluations = {}
+  store.clearLastLoadedUrl() // URL記録もクリア
   
   // Add sample options
   store.addOption('スマートフォンA')
@@ -492,6 +504,38 @@ function loadSampleData() {
   store.saveToLocalStorage()
 }
 
+// URL共有機能
+async function shareUrl() {
+  if (isSharing.value) return
+  
+  isSharing.value = true
+  shareSuccess.value = false
+  
+  try {
+    const success = await store.copyShareableUrl()
+    shareSuccess.value = success
+    
+    if (success) {
+      // 共有URLを記録（将来の再読み込み判定のため）
+      const currentHash = store.getCurrentShareHash()
+      if (currentHash) {
+        store.setLastLoadedUrl(currentHash)
+      }
+      
+      // 5秒後にリセット（少し長めに変更）
+      setTimeout(() => {
+        shareSuccess.value = false
+      }, 5000)
+    } else {
+      console.error('クリップボードへのコピーに失敗しました')
+    }
+  } catch (error) {
+    console.error('URL共有に失敗しました:', error)
+  } finally {
+    isSharing.value = false
+  }
+}
+
 // Handle ESC key for modal
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
@@ -501,11 +545,15 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 // Initialize
 onMounted(() => {
-  const loaded = store.loadFromLocalStorage()
-  // If no saved data exists, load sample data
-  if (!loaded || (store.options.length === 0 && store.criteria.length === 0)) {
+  const result = store.smartLoadData()
+  
+  // ローカルデータもURLデータもない場合はサンプルデータを読み込み
+  if (!result.loaded || (store.options.length === 0 && store.criteria.length === 0)) {
     loadSampleData()
   }
+  
+  // ログ出力（開発時の確認用）
+  console.log(`データ読み込み完了: ${result.source}から読み込み`)
   
   // Add ESC key listener for modal
   document.addEventListener('keydown', handleKeydown)
