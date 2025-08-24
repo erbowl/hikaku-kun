@@ -29,16 +29,61 @@ export interface ProjectData {
   evaluations: Record<string, Record<string, number>>
 }
 
+export interface ProjectsData {
+  activeProjectId: string | null
+  projects: Record<string, ProjectData>
+}
+
 export const useComparisonStore = defineStore('comparison', () => {
   // Constants for localStorage keys
-  const STORAGE_KEY = 'comparison-tool-data'
+  const STORAGE_KEY = 'comparison-tool-projects'
   const LAST_URL_KEY = 'comparison-tool-last-url'
   
   // State
-  const projectName = ref('新しいプロジェクト')
-  const options = ref<Option[]>([])
-  const criteria = ref<Criteria[]>([])
-  const evaluations = ref<Record<string, Record<string, number>>>({})
+  const activeProjectId = ref<string | null>(null)
+  const projects = ref<Record<string, ProjectData>>({})
+  
+  // Current project computed properties
+  const currentProject = computed(() => {
+    return activeProjectId.value ? projects.value[activeProjectId.value] : null
+  })
+  
+  const projectName = computed(() => {
+    return currentProject.value?.name || '新しいプロジェクト'
+  })
+  
+  const options = computed(() => {
+    return currentProject.value?.options || []
+  })
+  
+  const criteria = computed(() => {
+    return currentProject.value?.criteria || []
+  })
+  
+  const evaluations = computed(() => {
+    return currentProject.value?.evaluations || {}
+  })
+  
+  // Project list computed
+  const projectList = computed(() => {
+    return Object.values(projects.value).sort((a, b) => 
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )
+  })
+  
+  // Helper function to ensure current project exists
+  function ensureCurrentProject() {
+    if (!activeProjectId.value || !projects.value[activeProjectId.value]) {
+      createNewProject()
+    }
+  }
+  
+  // Update current project's timestamp
+  function updateCurrentProjectTimestamp() {
+    if (activeProjectId.value && projects.value[activeProjectId.value]) {
+      projects.value[activeProjectId.value].updatedAt = new Date().toISOString()
+    }
+  }
 
   // Computed
   const results = computed(() => {
@@ -73,102 +118,159 @@ export const useComparisonStore = defineStore('comparison', () => {
 
   // Actions
   function addOption(name: string) {
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
     const id = generateId()
-    options.value.push({ id, name })
-    if (!evaluations.value[id]) {
-      evaluations.value[id] = {}
+    currentProj.options.push({ id, name })
+    if (!currentProj.evaluations[id]) {
+      currentProj.evaluations[id] = {}
     }
     // Initialize evaluations for all existing criteria with default value 3 (普通)
-    criteria.value.forEach(criterium => {
-      evaluations.value[id][criterium.id] = 3
+    currentProj.criteria.forEach(criterium => {
+      currentProj.evaluations[id][criterium.id] = 3
     })
+    
+    updateCurrentProjectTimestamp()
   }
 
   function removeOption(id: string) {
-    const index = options.value.findIndex(option => option.id === id)
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    const index = currentProj.options.findIndex(option => option.id === id)
     if (index !== -1) {
-      options.value.splice(index, 1)
-      delete evaluations.value[id]
+      currentProj.options.splice(index, 1)
+      delete currentProj.evaluations[id]
     }
+    
+    updateCurrentProjectTimestamp()
   }
 
   function updateOption(id: string, name: string) {
-    const option = options.value.find(option => option.id === id)
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    const option = currentProj.options.find(option => option.id === id)
     if (option) {
       option.name = name
+      updateCurrentProjectTimestamp()
     }
   }
 
   function reorderOptions(fromIndex: number, toIndex: number) {
-    const item = options.value.splice(fromIndex, 1)[0]
-    options.value.splice(toIndex, 0, item)
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    const item = currentProj.options.splice(fromIndex, 1)[0]
+    currentProj.options.splice(toIndex, 0, item)
+    updateCurrentProjectTimestamp()
   }
 
   function addCriteria(name: string, weight: number = 5) {
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
     const id = generateId()
-    criteria.value.push({ id, name, weight })
+    currentProj.criteria.push({ id, name, weight })
     
     // Initialize evaluations for all options
-    options.value.forEach(option => {
-      if (!evaluations.value[option.id]) {
-        evaluations.value[option.id] = {}
+    currentProj.options.forEach(option => {
+      if (!currentProj.evaluations[option.id]) {
+        currentProj.evaluations[option.id] = {}
       }
-      evaluations.value[option.id][id] = 3
+      currentProj.evaluations[option.id][id] = 3
     })
+    updateCurrentProjectTimestamp()
   }
 
   function removeCriteria(id: string) {
-    const index = criteria.value.findIndex(criterium => criterium.id === id)
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    const index = currentProj.criteria.findIndex(criterium => criterium.id === id)
     if (index !== -1) {
-      criteria.value.splice(index, 1)
+      currentProj.criteria.splice(index, 1)
       // Remove evaluations for this criteria
-      Object.keys(evaluations.value).forEach(optionId => {
-        delete evaluations.value[optionId][id]
+      Object.keys(currentProj.evaluations).forEach(optionId => {
+        delete currentProj.evaluations[optionId][id]
       })
     }
+    
+    updateCurrentProjectTimestamp()
   }
 
   function updateCriteria(id: string, name: string, weight: number) {
-    const criterium = criteria.value.find(criterium => criterium.id === id)
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    const criterium = currentProj.criteria.find(criterium => criterium.id === id)
     if (criterium) {
       criterium.name = name
       criterium.weight = weight
+      updateCurrentProjectTimestamp()
     }
   }
 
   function reorderCriteria(fromIndex: number, toIndex: number) {
-    const item = criteria.value.splice(fromIndex, 1)[0]
-    criteria.value.splice(toIndex, 0, item)
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    const item = currentProj.criteria.splice(fromIndex, 1)[0]
+    currentProj.criteria.splice(toIndex, 0, item)
+    updateCurrentProjectTimestamp()
   }
 
   function setEvaluation(optionId: string, criteriaId: string, value: number) {
-    if (!evaluations.value[optionId]) {
-      evaluations.value[optionId] = {}
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
+    if (!currentProj.evaluations[optionId]) {
+      currentProj.evaluations[optionId] = {}
     }
-    evaluations.value[optionId][criteriaId] = value
+    currentProj.evaluations[optionId][criteriaId] = value
+    updateCurrentProjectTimestamp()
   }
 
   function loadProject(data: ProjectData) {
-    projectName.value = data.name
-    options.value = [...data.options]
-    criteria.value = [...data.criteria]
-    evaluations.value = { ...data.evaluations }
+    // Create a new project or update existing one
+    const projectId = data.id || generateId()
+    const now = new Date().toISOString()
+    
+    projects.value[projectId] = {
+      id: projectId,
+      name: data.name,
+      createdAt: data.createdAt || now,
+      updatedAt: data.updatedAt || now,
+      options: [...data.options],
+      criteria: [...data.criteria],
+      evaluations: { ...data.evaluations }
+    }
+    
+    activeProjectId.value = projectId
+    saveToLocalStorage()
   }
 
   function exportProject(): ProjectData {
+    ensureCurrentProject()
+    const currentProj = projects.value[activeProjectId.value!]
+    
     return {
-      id: generateId(),
-      name: projectName.value,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      options: [...options.value],
-      criteria: [...criteria.value],
-      evaluations: { ...evaluations.value }
+      id: currentProj.id,
+      name: currentProj.name,
+      createdAt: currentProj.createdAt,
+      updatedAt: currentProj.updatedAt,
+      options: [...currentProj.options],
+      criteria: [...currentProj.criteria],
+      evaluations: { ...currentProj.evaluations }
     }
   }
 
   function saveToLocalStorage() {
-    const data = exportProject()
+    const data: ProjectsData = {
+      activeProjectId: activeProjectId.value,
+      projects: projects.value
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
 
@@ -176,9 +278,38 @@ export const useComparisonStore = defineStore('comparison', () => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
-        const data = JSON.parse(saved) as ProjectData
-        loadProject(data)
-        return true
+        // Try new format first
+        const data = JSON.parse(saved) as ProjectsData | ProjectData
+        
+        // Check if it's the new format
+        if ('activeProjectId' in data && 'projects' in data) {
+          projects.value = data.projects
+          activeProjectId.value = data.activeProjectId
+          
+          // If no active project, create one
+          if (!activeProjectId.value || !projects.value[activeProjectId.value]) {
+            if (Object.keys(projects.value).length > 0) {
+              activeProjectId.value = Object.keys(projects.value)[0]
+            } else {
+              createNewProject()
+            }
+          }
+          return true
+        } else {
+          // Old format - migrate to new format
+          const oldProject = data as ProjectData
+          const projectId = oldProject.id || generateId()
+          
+          projects.value = {
+            [projectId]: {
+              ...oldProject,
+              id: projectId
+            }
+          }
+          activeProjectId.value = projectId
+          saveToLocalStorage() // Save in new format
+          return true
+        }
       } catch (error) {
         console.error('Failed to load from localStorage:', error)
         return false
@@ -189,6 +320,87 @@ export const useComparisonStore = defineStore('comparison', () => {
 
   function generateId(): string {
     return Math.random().toString(36).substr(2, 9)
+  }
+
+  // Project management functions
+  function createNewProject(name: string = '新しいプロジェクト'): string {
+    const projectId = generateId()
+    const now = new Date().toISOString()
+    
+    projects.value[projectId] = {
+      id: projectId,
+      name: name,
+      createdAt: now,
+      updatedAt: now,
+      options: [],
+      criteria: [],
+      evaluations: {}
+    }
+    
+    activeProjectId.value = projectId
+    saveToLocalStorage()
+    return projectId
+  }
+
+  function duplicateProject(sourceProjectId: string, newName?: string): string | null {
+    const sourceProject = projects.value[sourceProjectId]
+    if (!sourceProject) return null
+    
+    const projectId = generateId()
+    const now = new Date().toISOString()
+    
+    projects.value[projectId] = {
+      ...sourceProject,
+      id: projectId,
+      name: newName || `${sourceProject.name} - コピー`,
+      createdAt: now,
+      updatedAt: now,
+      options: [...sourceProject.options],
+      criteria: [...sourceProject.criteria],
+      evaluations: { ...sourceProject.evaluations }
+    }
+    
+    activeProjectId.value = projectId
+    saveToLocalStorage()
+    return projectId
+  }
+
+  function switchProject(projectId: string): boolean {
+    if (projects.value[projectId]) {
+      activeProjectId.value = projectId
+      saveToLocalStorage()
+      return true
+    }
+    return false
+  }
+
+  function deleteProject(projectId: string): boolean {
+    if (!projects.value[projectId]) return false
+    
+    delete projects.value[projectId]
+    
+    // If deleting active project, switch to another one or create new
+    if (activeProjectId.value === projectId) {
+      const remaining = Object.keys(projects.value)
+      if (remaining.length > 0) {
+        activeProjectId.value = remaining[0]
+      } else {
+        createNewProject()
+      }
+    }
+    
+    saveToLocalStorage()
+    return true
+  }
+
+  function updateProjectName(projectId: string, name: string): boolean {
+    if (projects.value[projectId]) {
+      projects.value[projectId].name = name
+      projects.value[projectId].updatedAt = new Date().toISOString()
+      saveToLocalStorage()
+      return true
+    }
+    return false
   }
 
   // URL管理機能
@@ -317,6 +529,9 @@ export const useComparisonStore = defineStore('comparison', () => {
     options,
     criteria,
     evaluations,
+    projectList,
+    currentProject,
+    activeProjectId: computed(() => activeProjectId.value),
     
     // Computed
     results,
@@ -336,6 +551,13 @@ export const useComparisonStore = defineStore('comparison', () => {
     exportProject,
     saveToLocalStorage,
     loadFromLocalStorage,
+    
+    // Project management
+    createNewProject,
+    duplicateProject,
+    switchProject,
+    deleteProject,
+    updateProjectName,
     
     // URL共有機能
     generateShareableUrl,

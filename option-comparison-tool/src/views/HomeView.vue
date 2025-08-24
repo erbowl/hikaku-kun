@@ -1,8 +1,24 @@
 <template>
   <div id="app">
     <header>
-      <h1>比較くん</h1>
-      <p class="subtitle">複数の選択肢を多観点で評価し、最適な選択を支援します</p>
+      <div class="header-content">
+        <div class="title-section">
+          <h1>比較くん</h1>
+          <p class="subtitle">複数の選択肢を多観点で評価し、最適な選択を支援します</p>
+        </div>
+        <div class="header-actions">
+          <div class="project-info">
+            <span class="project-name">{{ store.projectName }}</span>
+            <button 
+              @click="showProjectManager = true" 
+              class="project-manager-btn"
+              title="プロジェクト管理"
+            >
+              📁 プロジェクト管理
+            </button>
+          </div>
+        </div>
+      </div>
     </header>
     
     <main>
@@ -210,6 +226,12 @@
       </section>
     </main>
 
+    <!-- ProjectManager Modal -->
+    <ProjectManager 
+      :is-open="showProjectManager" 
+      @close="showProjectManager = false" 
+    />
+
     <!-- データフォーマット仕様モーダル -->
     <div v-if="showFormatModal" class="modal-overlay" @click="showFormatModal = false">
       <div class="modal-content" @click.stop>
@@ -305,6 +327,7 @@ import EvaluationTable from '@/components/EvaluationTable.vue'
 import WeightRadarChart from '@/components/WeightRadarChart.vue'
 import ScoreStackedChart from '@/components/ScoreStackedChart.vue'
 import ResultsRanking from '@/components/ResultsRanking.vue'
+import ProjectManager from '@/components/ProjectManager.vue'
 import draggable from 'vuedraggable'
 
 const store = useComparisonStore()
@@ -317,6 +340,7 @@ const fileInput = ref<HTMLInputElement>()
 
 // Modal state
 const showFormatModal = ref(false)
+const showProjectManager = ref(false)
 
 // URL共有の状態
 const isSharing = ref(false)
@@ -452,56 +476,58 @@ function importData(event: Event) {
 
 function clearAllData() {
   if (confirm('すべてのデータを削除しますか？この操作は元に戻せません。')) {
-    store.options.length = 0
-    store.criteria.length = 0
-    store.evaluations = {}
+    // Create a new empty project
+    store.createNewProject('新しいプロジェクト')
     store.clearLastLoadedUrl() // URL記録もクリア
-    store.saveToLocalStorage()
   }
 }
 
 function loadSampleData() {
-  // Clear existing data
-  store.options.length = 0
-  store.criteria.length = 0
-  store.evaluations = {}
+  // Create sample project data
+  const sampleProject = {
+    id: 'sample_project',
+    name: 'スマートフォン比較プロジェクト',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    options: [
+      { id: 'option_1', name: 'スマートフォンA' },
+      { id: 'option_2', name: 'スマートフォンB' },
+      { id: 'option_3', name: 'スマートフォンC' }
+    ],
+    criteria: [
+      { id: 'criteria_1', name: '価格', weight: 8 },
+      { id: 'criteria_2', name: '性能', weight: 9 },
+      { id: 'criteria_3', name: 'デザイン', weight: 6 },
+      { id: 'criteria_4', name: 'バッテリー', weight: 7 },
+      { id: 'criteria_5', name: 'カメラ', weight: 5 }
+    ],
+    evaluations: {
+      'option_1': {
+        'criteria_1': 4, // 価格
+        'criteria_2': 3, // 性能
+        'criteria_3': 3, // デザイン
+        'criteria_4': 4, // バッテリー
+        'criteria_5': 3  // カメラ
+      },
+      'option_2': {
+        'criteria_1': 2, // 価格
+        'criteria_2': 5, // 性能
+        'criteria_3': 5, // デザイン
+        'criteria_4': 3, // バッテリー
+        'criteria_5': 5  // カメラ
+      },
+      'option_3': {
+        'criteria_1': 3, // 価格
+        'criteria_2': 4, // 性能
+        'criteria_3': 4, // デザイン
+        'criteria_4': 5, // バッテリー
+        'criteria_5': 4  // カメラ
+      }
+    }
+  }
+  
+  store.loadProject(sampleProject)
   store.clearLastLoadedUrl() // URL記録もクリア
-  
-  // Add sample options
-  store.addOption('スマートフォンA')
-  store.addOption('スマートフォンB')
-  store.addOption('スマートフォンC')
-  
-  // Add sample criteria
-  store.addCriteria('価格', 8)
-  store.addCriteria('性能', 9)
-  store.addCriteria('デザイン', 6)
-  store.addCriteria('バッテリー', 7)
-  store.addCriteria('カメラ', 5)
-  
-  // Add sample evaluations
-  // スマートフォンA: 価格重視の中級機
-  store.setEvaluation(store.options[0].id, store.criteria[0].id, 4) // 価格
-  store.setEvaluation(store.options[0].id, store.criteria[1].id, 3) // 性能
-  store.setEvaluation(store.options[0].id, store.criteria[2].id, 3) // デザイン
-  store.setEvaluation(store.options[0].id, store.criteria[3].id, 4) // バッテリー
-  store.setEvaluation(store.options[0].id, store.criteria[4].id, 3) // カメラ
-  
-  // スマートフォンB: 高性能フラッグシップ
-  store.setEvaluation(store.options[1].id, store.criteria[0].id, 2) // 価格
-  store.setEvaluation(store.options[1].id, store.criteria[1].id, 5) // 性能
-  store.setEvaluation(store.options[1].id, store.criteria[2].id, 5) // デザイン
-  store.setEvaluation(store.options[1].id, store.criteria[3].id, 3) // バッテリー
-  store.setEvaluation(store.options[1].id, store.criteria[4].id, 5) // カメラ
-  
-  // スマートフォンC: バランス型
-  store.setEvaluation(store.options[2].id, store.criteria[0].id, 3) // 価格
-  store.setEvaluation(store.options[2].id, store.criteria[1].id, 4) // 性能
-  store.setEvaluation(store.options[2].id, store.criteria[2].id, 4) // デザイン
-  store.setEvaluation(store.options[2].id, store.criteria[3].id, 5) // バッテリー
-  store.setEvaluation(store.options[2].id, store.criteria[4].id, 4) // カメラ
-  
-  store.saveToLocalStorage()
 }
 
 // URL共有機能
@@ -577,24 +603,75 @@ header {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
   padding: 2rem 1rem;
-  text-align: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.title-section {
+  flex: 1;
+}
+
+.header-actions {
+  flex-shrink: 0;
+}
+
+.project-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.project-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.project-manager-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.project-manager-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
 }
 
 h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0 auto;
+  margin: 0;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  max-width: 1200px;
 }
 
 .subtitle {
   font-size: 1.1rem;
-  margin: 0.5rem auto 0 0;
+  margin: 0.5rem 0 0 0;
   opacity: 0.9;
   font-weight: 300;
-  max-width: 1200px;
 }
 
 main {
@@ -978,7 +1055,24 @@ main {
 
 @media (max-width: 768px) {
   header {
-    padding: 1.5rem 0;
+    padding: 1.5rem 1rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .title-section {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .header-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
   
   h1 {
@@ -987,6 +1081,17 @@ main {
   
   .subtitle {
     font-size: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .project-info {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .project-name {
+    font-size: 1rem;
+    text-align: center;
   }
   
   main {
@@ -1026,6 +1131,28 @@ main {
 }
 
 @media (max-width: 480px) {
+  .header-content {
+    gap: 1rem;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .project-name {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .project-manager-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
   .management-section h2,
   .data-section h2,
   .evaluation-section h2,
