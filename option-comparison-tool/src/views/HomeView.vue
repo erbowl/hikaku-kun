@@ -43,7 +43,7 @@
           
           <div class="items-list" v-if="store.options.length > 0">
             <draggable 
-              v-model="store.options" 
+              :list="store.options" 
               @end="onOptionSort"
               item-key="id"
               class="draggable-list"
@@ -114,7 +114,7 @@
           
           <div class="items-list" v-if="store.criteria.length > 0">
             <draggable 
-              v-model="store.criteria" 
+              :list="store.criteria" 
               @end="onCriteriaSort"
               item-key="id"
               class="draggable-list"
