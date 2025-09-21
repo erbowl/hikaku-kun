@@ -33,7 +33,7 @@
             <input 
               v-model="newOptionName" 
               placeholder="新しい選択肢名を入力" 
-              @keyup.enter="addOption"
+              @keydown.enter.prevent="onAddOptionEnter"
               class="form-input"
             />
             <button @click="addOption" :disabled="!newOptionName.trim()" class="btn btn-primary">
@@ -58,7 +58,7 @@
                   <div v-if="editingOption === option.id" class="edit-form">
                     <input 
                       v-model="editOptionName" 
-                      @keyup.enter="saveOptionEdit(option.id)"
+                      @keydown.enter.prevent="onEditOptionEnter($event, option.id)"
                       @keyup.esc="cancelOptionEdit"
                       class="edit-input"
                       ref="editOptionInput"
@@ -95,7 +95,7 @@
             <input 
               v-model="newCriteriaName" 
               placeholder="新しい観点名を入力" 
-              @keyup.enter="addCriteria"
+              @keydown.enter.prevent="onAddCriteriaEnter"
               class="form-input"
             />
             <input 
@@ -104,7 +104,7 @@
               min="1" 
               max="10" 
               placeholder="重み(1-10)"
-              @keyup.enter="addCriteria"
+              @keydown.enter.prevent="onAddCriteriaEnter"
               class="weight-input"
             />
             <button @click="addCriteria" :disabled="!newCriteriaName.trim()" class="btn btn-primary">
@@ -129,7 +129,7 @@
                   <div v-if="editingCriteria === criteria.id" class="edit-form">
                     <input 
                       v-model="editCriteriaName" 
-                      @keyup.enter="saveCriteriaEdit(criteria.id)"
+                      @keydown.enter.prevent="onEditCriteriaEnter($event, criteria.id)"
                       @keyup.esc="cancelCriteriaEdit"
                       class="edit-input"
                     />
@@ -138,7 +138,7 @@
                       type="number" 
                       min="1" 
                       max="10"
-                      @keyup.enter="saveCriteriaEdit(criteria.id)"
+                      @keydown.enter.prevent="onEditCriteriaEnter($event, criteria.id)"
                       @keyup.esc="cancelCriteriaEdit"
                       class="weight-input"
                     />
@@ -435,6 +435,32 @@ function cancelCriteriaEdit() {
   editingCriteria.value = null
   editCriteriaName.value = ''
   editCriteriaWeight.value = 5
+}
+
+// IME対応のEnterハンドラ
+function onAddOptionEnter(e: KeyboardEvent) {
+  // IME変換確定のEnterは無視
+  // @ts-ignore
+  if ((e as any).isComposing || (e as any).keyCode === 229) return
+  addOption()
+}
+
+function onEditOptionEnter(e: KeyboardEvent, id: string) {
+  // @ts-ignore
+  if ((e as any).isComposing || (e as any).keyCode === 229) return
+  saveOptionEdit(id)
+}
+
+function onAddCriteriaEnter(e: KeyboardEvent) {
+  // @ts-ignore
+  if ((e as any).isComposing || (e as any).keyCode === 229) return
+  addCriteria()
+}
+
+function onEditCriteriaEnter(e: KeyboardEvent, id: string) {
+  // @ts-ignore
+  if ((e as any).isComposing || (e as any).keyCode === 229) return
+  saveCriteriaEdit(id)
 }
 
 // Data management methods
