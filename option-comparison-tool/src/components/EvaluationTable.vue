@@ -4,54 +4,56 @@
       <p>評価を始めるには、まず選択肢と観点を追加してください。</p>
     </div>
     <div v-else class="table-container">
-      <table class="excel-table">
-        <thead>
-          <tr>
-            <th class="option-header">選択肢 / 観点</th>
-            <th 
-              v-for="criteria in store.criteria" 
-              :key="criteria.id" 
-              class="criteria-header"
-              :title="`重み: ${criteria.weight}`"
-            >
-              {{ criteria.name }}
-              <span class="weight-badge">{{ criteria.weight }}</span>
-            </th>
-            <th class="score-header">総スコア</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="option in store.options" :key="option.id" class="option-row">
-            <td class="option-cell">
-              <div class="option-name">{{ option.name }}</div>
-            </td>
-            <td 
-              v-for="criteria in store.criteria" 
-              :key="`${option.id}-${criteria.id}`"
-              class="evaluation-cell"
-            >
-              <select 
-                :value="store.evaluations[option.id]?.[criteria.id] || 3"
-                @change="updateEvaluation(option.id, criteria.id, $event)"
-                :class="getEvaluationClass(store.evaluations[option.id]?.[criteria.id] || 3)"
-                class="evaluation-select"
-                :title="getEvaluationLabel(store.evaluations[option.id]?.[criteria.id] || 3)"
+      <div class="table-wrapper">
+        <table class="excel-table">
+          <thead>
+            <tr>
+              <th class="option-header sticky-left sticky-top">選択肢 / 観点</th>
+              <th 
+                v-for="criteria in store.criteria" 
+                :key="criteria.id" 
+                class="criteria-header sticky-top"
+                :title="`重み: ${criteria.weight}`"
               >
-                <option value="1">1 - 非常に低い</option>
-                <option value="2">2 - 低い</option>
-                <option value="3">3 - 普通</option>
-                <option value="4">4 - 高い</option>
-                <option value="5">5 - 非常に高い</option>
-              </select>
-            </td>
-            <td class="score-cell">
-              <div class="total-score">
-                {{ Math.round(store.results[option.id]?.totalScore || 0) }}
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                {{ criteria.name }}
+                <span class="weight-badge">{{ criteria.weight }}</span>
+              </th>
+              <th class="score-header sticky-top">総スコア</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="option in store.options" :key="option.id" class="option-row">
+              <td class="option-cell sticky-left">
+                <div class="option-name">{{ option.name }}</div>
+              </td>
+              <td 
+                v-for="criteria in store.criteria" 
+                :key="`${option.id}-${criteria.id}`"
+                class="evaluation-cell"
+              >
+                <select 
+                  :value="store.evaluations[option.id]?.[criteria.id] || 3"
+                  @change="updateEvaluation(option.id, criteria.id, $event)"
+                  :class="getEvaluationClass(store.evaluations[option.id]?.[criteria.id] || 3)"
+                  class="evaluation-select"
+                  :title="getEvaluationLabel(store.evaluations[option.id]?.[criteria.id] || 3)"
+                >
+                  <option value="1">1 - 非常に低い</option>
+                  <option value="2">2 - 低い</option>
+                  <option value="3">3 - 普通</option>
+                  <option value="4">4 - 高い</option>
+                  <option value="5">5 - 非常に高い</option>
+                </select>
+              </td>
+              <td class="score-cell">
+                <div class="total-score">
+                  {{ Math.round(store.results[option.id]?.totalScore || 0) }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     
     <!-- 評価の凡例 -->
@@ -145,10 +147,18 @@ function getEvaluationLabel(value: number): string {
 }
 
 .table-container {
-  overflow-x: auto;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: #fff;
+  position: relative;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.table-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .excel-table {
@@ -156,6 +166,7 @@ function getEvaluationLabel(value: number): string {
   border-collapse: collapse;
   font-size: 14px;
   min-width: 600px;
+  position: relative;
 }
 
 .excel-table th,
@@ -164,28 +175,59 @@ function getEvaluationLabel(value: number): string {
   padding: 8px 12px;
   text-align: center;
   vertical-align: middle;
+  background: #fff;
 }
 
 .excel-table th {
   background: #f5f5f5;
   font-weight: 600;
   color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
-.option-header {
+/* スティッキーヘッダー */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* 左端列の固定 */
+.sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+}
+
+/* 右端列の固定（現在は使用していませんが、将来の拡張のために残しておきます） */
+.sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 15;
+}
+
+/* 左上角のセル（選択肢/観点） */
+.option-header.sticky-left.sticky-top {
   background: #e8f4fd !important;
   font-weight: 700;
   text-align: left;
   min-width: 120px;
   max-width: 150px;
+  z-index: 25;
 }
 
-.criteria-header {
+/* 右上角のセル（総スコア） */
+.score-header.sticky-top {
+  background: #fff2e8 !important;
+  font-weight: 700;
+  color: #d97706;
+  min-width: 80px;
+}
+
+.criteria-header.sticky-top {
   background: #f0f8ff !important;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 20;
   min-width: 100px;
 }
 
@@ -216,10 +258,15 @@ function getEvaluationLabel(value: number): string {
 }
 
 .option-cell {
-  background: #f8f9fa;
+  background: #f8f9fa !important;
   text-align: left;
   font-weight: 500;
   padding: 12px;
+}
+
+.option-cell.sticky-left {
+  background: #f8f9fa !important;
+  border-right: 2px solid #d0d0d0;
 }
 
 .option-name {
@@ -284,7 +331,7 @@ function getEvaluationLabel(value: number): string {
 }
 
 .score-cell {
-  background: #fff7ed;
+  background: #fff7ed !important;
   padding: 8px;
 }
 
@@ -366,10 +413,65 @@ function getEvaluationLabel(value: number): string {
   color: #059669;
 }
 
+/* スクロールバーのスタイル調整 */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* スティッキー要素のシャドウ効果 */
+.sticky-left::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+}
+
+.sticky-right::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -2px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+}
+
+.sticky-top::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
   .table-container {
     border-radius: 4px;
+    max-height: 60vh;
   }
   
   .excel-table {
@@ -379,6 +481,15 @@ function getEvaluationLabel(value: number): string {
   .excel-table th,
   .excel-table td {
     padding: 6px 8px;
+  }
+  
+  .option-header.sticky-left {
+    min-width: 100px;
+    max-width: 120px;
+  }
+  
+  .score-header.sticky-top {
+    min-width: 60px;
   }
   
   .legend-items {
